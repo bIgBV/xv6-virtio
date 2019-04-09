@@ -8,20 +8,21 @@ struct net_card netcards[NCARDS] = {0};
 
 int alloc_netcard()
 {
-  struct net_card* card;
+  struct net_card card;
   int index = -1;
 
-  for(card = netcards; card < &netcards[NCARDS]; card++) {
-      if (card->state == FREE) {
+  for(int i = 0; i < NCARDS; i++) {
+      index += 1;
+      card = netcards[i];
+      if (card.state == FREE) {
         goto found;
       }
-      index += 1;
   }
 
   return index;
 
 found:
-  card->state = USED;
+  card.state = USED;
   return index;
 }
 

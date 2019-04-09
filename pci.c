@@ -6,26 +6,34 @@
 #include "memlayout.h"
 #include "util.h"
 
-struct pci_device pcidevs[NPCI] = {0};
-int pcikeys[NPCI] = {0};
+extern struct pci_device pcidevs[NPCI] = {0};
+extern int pcikeys[NPCI] = {0};
 
 int alloc_pci()
 {
-    struct pci_device* i;
+    struct pci_device dev;
     int index = -1;
 
-    for (i = pcidevs; i < &pcidevs[NPCI]; i++) {
-        if (i->state == FREE) {
+    for (int i = 0; i < NPCI; i++) {
+        index += 1;
+        dev = pcidevs[i];
+        if (dev.state == FREE) {
             goto found;
         }
-        index += 1;
     }
 
     return index;
 
 found:
-    i->state = USED;
+    dev.state = USED;
+    cprintf("State: %d\n", dev.state);
     return index;
+}
+
+void free_pci(int fd)
+{
+    struct pci_device dev = pcidevs[fd];
+    dev.state = FREE;
 }
 
 int get_pci_dev(int dev_class)
@@ -228,8 +236,10 @@ static int pci_enumerate(struct pci_bus *bus)
     int fd = alloc_pci();
     struct pci_device dev_fn = pcidevs[fd];
     memset(&dev_fn, 0, sizeof(dev_fn));
+    dev_fn.state = USED;
     dev_fn.bus = bus;
 
+    cprintf("State: %d\n", dev_fn.state);
     for (dev_fn.dev = 0; dev_fn.dev < PCI_MAX_DEVICES; dev_fn.dev++) {
         uint32 bhcl = confread32(&dev_fn, PCI_BHLC_REG);
 
@@ -243,7 +253,10 @@ static int pci_enumerate(struct pci_bus *bus)
 
         // Configure the device functions
         for (fn.func = 0; fn.func < (PCI_HDRTYPE_MULTIFN(bhcl) ? 8 : 1); fn.func++) {
-            struct pci_device individual_fn = fn;
+            int individual_fd = alloc_pci();
+            struct pci_device individual_fn = pcidevs[individual_fd];
+            memmove(&individual_fn, &fn, sizeof(struct pci_device));
+
             individual_fn.dev_id = confread32(&fn, PCI_ID_REG);
 
             // 0xffff is an invalid vendor ID
@@ -266,9 +279,9 @@ static int pci_enumerate(struct pci_bus *bus)
                         cprintf("We have a transitional network device.\n");
                         config_pci(&individual_fn);
 
-                        // store the index to where the pci_dev struct is
-                        // stored in the pcikeys slab.
-                        pcikeys[individual_fn.dev_class] = fd;
+                        // store the index to where the pci_device struct is
+                        // stored in the pcidevs slab.
+                        pcikeys[individual_fn.dev_class] = individual_fd;
 
                         break;
                     default:
