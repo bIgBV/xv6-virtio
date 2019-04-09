@@ -3,7 +3,6 @@
 #include "defs.h"
 #include "pci.h"
 #include "virtio.h"
-#include "util.h"
 
 
 #define VIRTIO_F_VERSION_1		32
@@ -20,31 +19,30 @@ struct virtio_device virtdevs[NVIRTIO] = {0};
  */
 int alloc_virt_dev(int pci_fd)
 {
-  struct virtio_device vdev;
+  struct virtio_device* vdev;
   struct pci_device* dev = &pcidevs[pci_fd];
   int index = -1;
 
-  for (int i = 0; i < NVIRTIO; i++) {
-    index += 1;
-    vdev = virtdevs[i];
-    if (vdev.state == FREE) {
-      goto found;
-    }
+  for (vdev = virtdevs; vdev < &virtdevs[NVIRTIO]; vdev++) {
+      index += 1;
+      if (vdev->state == VIRT_FREE) {
+          goto found;
+      }
   }
 
   return -1;
 
 found:
 
-  vdev.state = USED;
-  vdev.base = dev->membase;
-  vdev.size = dev->reg_size[4];
-  vdev.irq = dev->irq_line;
-  vdev.iobase = dev->iobase;
-  vdev.pci = dev;
-  vdev.cfg = (struct virtio_pci_common_cfg*)vdev.base;
+  vdev->state = VIRT_USED;
+  vdev->base = dev->membase;
+  vdev->size = dev->reg_size[4];
+  vdev->irq = dev->irq_line;
+  vdev->iobase = dev->iobase;
+  vdev->pci = dev;
+  vdev->cfg = (struct virtio_pci_common_cfg*)vdev->base;
 
-  cprintf("Membase is: %x\n", vdev.base);
+  cprintf("Membase is: %x\n", dev->membase);
 
   return index;
 }

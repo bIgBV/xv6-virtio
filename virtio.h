@@ -101,7 +101,7 @@ struct virtio_pci_common_cfg {
  * A Virtio device.
  */
 struct virtio_device {
-    int state;
+    enum { VIRT_FREE, VIRT_USED } state;
     // memory mapped IO base
     uint32 base;
     // size of memory mapped region

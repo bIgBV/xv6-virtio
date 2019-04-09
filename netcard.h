@@ -12,7 +12,7 @@ struct net_conf
 
 struct net_card
 {
-  int state;
+  enum { NET_FREE, NET_USED } state;
   struct net_conf conf;
   void* device;
   int (*write)(char*, int);

@@ -4,36 +4,33 @@
 #include "virtio.h"
 #include "pciregisters.h"
 #include "memlayout.h"
-#include "util.h"
 
 extern struct pci_device pcidevs[NPCI] = {0};
 extern int pcikeys[NPCI] = {0};
 
 int alloc_pci()
 {
-    struct pci_device dev;
+    struct pci_device* dev;
     int index = -1;
 
-    for (int i = 0; i < NPCI; i++) {
+    for (dev = pcidevs; dev< &pcidevs[NPCI]; dev++) {
         index += 1;
-        dev = pcidevs[i];
-        if (dev.state == FREE) {
+        if (dev->state == PCI_FREE) {
             goto found;
         }
     }
-
     return -1;
 
 found:
-    dev.state = USED;
-    cprintf("State: %d\n", dev.state);
+    dev->state = PCI_USED;
     return index;
 }
 
 void free_pci(int fd)
 {
     struct pci_device dev = pcidevs[fd];
-    dev.state = FREE;
+    memset(&dev, 0, sizeof(struct pci_device));
+    dev.state = PCI_FREE;
 }
 
 int get_pci_dev(int dev_class)
@@ -236,10 +233,9 @@ static int pci_enumerate(struct pci_bus *bus)
     int fd = alloc_pci();
     struct pci_device dev_fn = pcidevs[fd];
     memset(&dev_fn, 0, sizeof(dev_fn));
-    dev_fn.state = USED;
+    dev_fn.state = PCI_USED;
     dev_fn.bus = bus;
 
-    cprintf("State: %d\n", dev_fn.state);
     for (dev_fn.dev = 0; dev_fn.dev < PCI_MAX_DEVICES; dev_fn.dev++) {
         uint32 bhcl = confread32(&dev_fn, PCI_BHLC_REG);
 
@@ -261,6 +257,7 @@ static int pci_enumerate(struct pci_bus *bus)
 
             // 0xffff is an invalid vendor ID
             if (PCI_VENDOR_ID(individual_fn.dev_id) == 0xffff) {
+                free_pci(individual_fd);
                 continue;
             }
 
@@ -270,23 +267,26 @@ static int pci_enumerate(struct pci_bus *bus)
 
             individual_fn.dev_class = confread32(&individual_fn, PCI_CLASS_REG);
 
-            // populate BAR information.
-            read_dev_bars(&individual_fn);
 
             if (PCI_VENDOR_ID(individual_fn.dev_id) == VIRTIO_VENDOR_ID) {
                 switch(PCI_DEVICE_ID(individual_fn.dev_id)) {
                     case (T_NETWORK_CARD):
                         cprintf("We have a transitional network device.\n");
+                        // populate BAR information.
+                        read_dev_bars(&individual_fn);
                         config_pci(&individual_fn);
 
                         // store the index to where the pci_device struct is
                         // stored in the pcidevs slab.
-                        pcikeys[individual_fn.dev_class] = individual_fd;
+                        pcikeys[PCI_CLASS(individual_fn.dev_class)] = individual_fd;
+                        cprintf("pcikeys[%d]: %d\n", PCI_CLASS(individual_fn.dev_class), individual_fd);
 
                         break;
                     default:
                         cprintf("We have some other transitional device.\n");
                 }
+            } else {
+                free_pci(individual_fd);
             }
 
             log_pci_device(&individual_fn);

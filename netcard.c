@@ -1,28 +1,26 @@
 #include "defs.h"
 #include "types.h"
 #include "netcard.h"
-#include "util.h"
 #include "virtio.h"
 
 struct net_card netcards[NCARDS] = {0};
 
 int alloc_netcard()
 {
-  struct net_card card;
+  struct net_card* card;
   int index = -1;
 
-  for(int i = 0; i < NCARDS; i++) {
-      index += 1;
-      card = netcards[i];
-      if (card.state == FREE) {
-        goto found;
-      }
+  for (card = netcards; card < &netcards[NCARDS]; card++) {
+    index += 1;
+    if (card->state == NET_FREE) {
+      goto found;
+    }
   }
 
   return -1;
 
 found:
-  card.state = USED;
+  card->state = NET_USED;
   return index;
 }
 
@@ -36,7 +34,9 @@ void net_init()
   struct net_card card = netcards[fd];
   // Device class number for a network card
   int pci_fd = get_pci_dev(0x02);
+  cprintf("Got pci device: %d\n", pci_fd);
   int virt_fd = virtio_init(pci_fd);
+  cprintf("Got virtio device: %d\n", virt_fd);
 
   card.device = &virtdevs[virt_fd];
 }

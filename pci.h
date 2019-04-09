@@ -33,7 +33,7 @@ struct pci_bus {
 };
 
 struct pci_device {
-    int state;
+    enum { PCI_FREE, PCI_USED } state;
     // The bus this device is on
     struct pci_bus *bus;
 
@@ -57,7 +57,7 @@ struct pci_device {
     uint32 iobase;
 };
 
-#define NPCI                        10
+#define NPCI                        50
 
 extern struct pci_device pcidevs[NPCI];
 extern int pcikeys[NPCI];
