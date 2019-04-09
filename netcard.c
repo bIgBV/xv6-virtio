@@ -19,7 +19,7 @@ int alloc_netcard()
       }
   }
 
-  return index;
+  return -1;
 
 found:
   card.state = USED;

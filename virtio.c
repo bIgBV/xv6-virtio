@@ -32,7 +32,7 @@ int alloc_virt_dev(int pci_fd)
     }
   }
 
-  return index;
+  return -1;
 
 found:
 

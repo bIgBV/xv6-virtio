@@ -22,7 +22,7 @@ int alloc_pci()
         }
     }
 
-    return index;
+    return -1;
 
 found:
     dev.state = USED;
