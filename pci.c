@@ -119,9 +119,9 @@ int read_dev_bars(struct pci_device* f)
 
 			size = PCI_MAPREG_MEM_SIZE(rv);
 			base = PCI_MAPREG_MEM_ADDR(oldv);
-			cprintf("mem region %d: %d bytes at 0x%x\n",
-					regnum, size, base);
             f->membase = base;
+			cprintf("mem region %d: %d bytes at 0x%x\n",
+					regnum, size, f->membase);
 		} else {
 			size = PCI_MAPREG_IO_SIZE(rv);
 			base = PCI_MAPREG_IO_ADDR(oldv);
@@ -250,36 +250,36 @@ static int pci_enumerate(struct pci_bus *bus)
         // Configure the device functions
         for (fn.func = 0; fn.func < (PCI_HDRTYPE_MULTIFN(bhcl) ? 8 : 1); fn.func++) {
             int individual_fd = alloc_pci();
-            struct pci_device individual_fn = pcidevs[individual_fd];
-            memmove(&individual_fn, &fn, sizeof(struct pci_device));
+            struct pci_device* individual_fn = &pcidevs[individual_fd];
+            memmove(individual_fn, &fn, sizeof(struct pci_device));
 
-            individual_fn.dev_id = confread32(&fn, PCI_ID_REG);
+            individual_fn->dev_id = confread32(&fn, PCI_ID_REG);
 
             // 0xffff is an invalid vendor ID
-            if (PCI_VENDOR_ID(individual_fn.dev_id) == 0xffff) {
+            if (PCI_VENDOR_ID(individual_fn->dev_id) == 0xffff) {
                 free_pci(individual_fd);
                 continue;
             }
 
-            uint32 intr = confread32(&individual_fn, PCI_INTERRUPT_REG);
-            individual_fn.irq_line = PCI_INTERRUPT_LINE(intr);
-            individual_fn.irq_pin = PCI_INTERRUPT_PIN(intr);
+            uint32 intr = confread32(individual_fn, PCI_INTERRUPT_REG);
+            individual_fn->irq_line = PCI_INTERRUPT_LINE(intr);
+            individual_fn->irq_pin = PCI_INTERRUPT_PIN(intr);
 
-            individual_fn.dev_class = confread32(&individual_fn, PCI_CLASS_REG);
+            individual_fn->dev_class = confread32(individual_fn, PCI_CLASS_REG);
 
 
-            if (PCI_VENDOR_ID(individual_fn.dev_id) == VIRTIO_VENDOR_ID) {
-                switch(PCI_DEVICE_ID(individual_fn.dev_id)) {
+            if (PCI_VENDOR_ID(individual_fn->dev_id) == VIRTIO_VENDOR_ID) {
+                switch(PCI_DEVICE_ID(individual_fn->dev_id)) {
                     case (T_NETWORK_CARD):
                         cprintf("We have a transitional network device.\n");
                         // populate BAR information.
-                        read_dev_bars(&individual_fn);
-                        config_pci(&individual_fn);
+                        read_dev_bars(individual_fn);
+                        config_pci(individual_fn);
 
                         // store the index to where the pci_device struct is
                         // stored in the pcidevs slab.
-                        pcikeys[PCI_CLASS(individual_fn.dev_class)] = individual_fd;
-                        cprintf("pcikeys[%d]: %d\n", PCI_CLASS(individual_fn.dev_class), individual_fd);
+                        pcikeys[PCI_CLASS(individual_fn->dev_class)] = individual_fd;
+                        cprintf("pcikeys[%d]: %d\n", PCI_CLASS(individual_fn->dev_class), individual_fd);
 
                         break;
                     default:
@@ -289,7 +289,7 @@ static int pci_enumerate(struct pci_bus *bus)
                 free_pci(individual_fd);
             }
 
-            log_pci_device(&individual_fn);
+            log_pci_device(individual_fn);
         }
     }
     return num_dev;
