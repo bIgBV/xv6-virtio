@@ -9,6 +9,13 @@ inb(ushort port)
   return data;
 }
 
+static inline uint16_t
+inw(int port) {
+    uint16 data;
+    asm volatile("inw %w1,%0": "=a" (data): "d" (port));
+    return data;
+}
+
 static inline uint32_t
 inl(int port)
 {

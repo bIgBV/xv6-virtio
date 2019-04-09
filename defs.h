@@ -1,3 +1,5 @@
+#include "types.h"
+
 struct buf;
 struct context;
 struct file;
@@ -9,6 +11,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct pci_device;
 
 // bio.c
 void            binit(void);
@@ -186,8 +189,20 @@ void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 
+// virtio.c
+int             alloc_virt_dev(int);
+int             conf_virtio_mem(int, void(*)(uint32*));
+int             virtio_init(int);
+
+// netcard.c
+void            net_init(void);
+
 //arp.c
 int send_arpRequest(char* interface, char* ipAddr, char* arpResp);
+
+//pci.c
+int             pci_init(void);
+int             get_pci_dev(int);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

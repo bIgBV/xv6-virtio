@@ -262,10 +262,12 @@ int e1000_init(struct pci_func *pcif, void** driver, uint8_t *mac_addr) {
       }
     }
   }
-  if (!the_e1000->iobase)
-    panic("Fail to find a valid I/O port base for E1000.");
-    if (!the_e1000->membase)
-      panic("Fail to find a valid Mem I/O base for E1000.");
+    if (!the_e1000->iobase){
+      panic("Fail to find a valid I/O port base for E1000.");
+      if (!the_e1000->membase){
+        panic("Fail to find a valid Mem I/O base for E1000.");
+      }
+    }
 
 	the_e1000->irq_line = pcif->irq_line;
   the_e1000->irq_pin = pcif->irq_pin;

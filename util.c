@@ -6,6 +6,9 @@
 #include "types.h"
 #include "util.h"
 
+const int FREE = 0;
+const int USED = 1;
+
 int
 atoi(const char *s)
 {

@@ -9,4 +9,7 @@
 int atoi(const char*);
 int strcmp(const char*, const char*);
 
+extern const int FREE;
+extern const int USED;
+
 #endif

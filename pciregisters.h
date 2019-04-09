@@ -1,6 +1,37 @@
 #ifndef __XV6_NETSTACK_PCI_REGISTERS_H__
 #define __XV6_NETSTACK_PCI_REGISTERS_H__
 
+unsigned int create_mask(int start, int offset) {
+
+    return ((1 << offset) - 1) << start;
+}
+
+
+#define PCI_CAP_REG                 0x34
+// The bottom two bits are reserved and have to be masked off
+#define PCI_CAP_MASK                0xfc
+
+#define PCI_CAP_TYPE                0
+#define PCI_CAP_NEXT                1
+#define PCI_CAP_CFG_TYPE            3
+#define PCI_CAP_BAR                 4
+#define PCI_CAP_OFF                 8 // 05 byte is padding
+#define PCI_CAP_POINTER(reg) \
+    (reg & create_mask(0, 8))
+
+// The vendor ID is the last 16 bits of the ID register
+#define PCI_VENDOR_ID(value) \
+    (value & create_mask(0, 16))
+
+// The device ID if the high 16 bits of the ID register
+#define PCI_DEVICE_ID(value) \
+    ((value & create_mask(16, 16)) >> 16)
+/*
+ * PCI config space BAR offset
+ */
+#define PCI_CFG_BAR_OFF             0x10
+#define	PCI_CFG_BAR_END             0x28
+
 /**
  * author: Anmol Vatsa <anvatsa@cs.utah.edu>
  *
@@ -102,6 +133,8 @@
 #define	PCI_COMMAND_IO_ENABLE			0x00000001
 #define	PCI_COMMAND_MEM_ENABLE			0x00000002
 #define	PCI_COMMAND_MASTER_ENABLE		0x00000004
+#define PCI_COMMAND_CAPABALITES_LIST    0x00000010
+
 
 /*
  * Mapping registers
