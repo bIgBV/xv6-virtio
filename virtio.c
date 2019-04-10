@@ -75,8 +75,12 @@ int setup_virtqueue(struct virtio_device* dev, uint16 queue)
 
     void* buf = kalloc();
 
-    for (int i = 1; i < count; i++) {
+    // first call to kalloc() allocates a page.
+    int i = PGSIZE;
+
+    while (i < count) {
         kalloc();
+        i += PGSIZE;
     }
 
     // Since buf is a pointer to the starting of a page, this will be
