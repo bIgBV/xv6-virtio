@@ -79,9 +79,12 @@ int setup_virtqueue(struct virtio_device* dev, uint16 queue)
         kalloc();
     }
 
-    virtq->buffers = (struct virtq_desc*)&buf;
-    virtq->available = (struct virtq_avail*)&buf[desc_ring_size];
-    virtq->used = (struct virtq_used*)&buf[desc_ring_size + avail_ring_size];
+    // Since buf is a pointer to the starting of a page, this will be
+    // a multiple of two. Plus the sizes of the rings are themselves multiples
+    // of two, so the macro invocation shouldn't be an issue.
+    virtq->buffers = (struct virtq_desc*)ALIGN(&buf, 16);
+    virtq->available = (struct virtq_avail*)(&buf[desc_ring_size], 2);
+    virtq->used = (struct virtq_used*)ALIGN(&buf[desc_ring_size + avail_ring_size], 4);
     virtq->next_buffer = 0;
     virtq->lock = 0;
 
