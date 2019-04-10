@@ -131,12 +131,15 @@ int conf_virtio_mem(int fd, void (*negotiate)(uint32 *features))
         return -1;
     }
 
-
     // Only support 4 virt queues.
     for (int i = 0; i < 4; i++) {
         setup_virtqueue(dev, i);
-        cprintf("Generation: %d\n", dev->cfg->config_generation);
     }
+
+    flag |= VIRTIO_STATUS_DRIVER_OK;
+    dev->cfg->device_status = flag;
+
+    val = dev->cfg->device_status;
 
     return 0;
 }
