@@ -1,5 +1,7 @@
 #include <stddef.h>
 #include "types.h"
+#include "mmu.h"
+#include "memlayout.h"
 #include "defs.h"
 #include "pci.h"
 #include "virtio.h"
@@ -42,9 +44,50 @@ found:
   vdev->pci = dev;
   vdev->cfg = (struct virtio_pci_common_cfg*)vdev->base;
 
-  cprintf("Membase is: %x\n", dev->membase);
-
   return index;
+}
+
+int setup_virtqueue(struct virtio_device* dev, uint16 queue)
+{
+    // We are configuring queue number `queue`
+    dev->cfg->queue_select = queue;
+
+    uint16 size = dev->cfg->queue_size;
+
+    cprintf("Queue: %d size: %d\n", queue, size);
+
+    // size 0 implies the queue doesn't exist.
+    if (size == 0) {
+        return -1;
+    }
+
+    struct virt_queue* virtq = &dev->queues[queue];
+    virtq->queue_size = size;
+    virtq->num = queue;
+
+    // http://docs.oasis-open.org/virtio/virtio/v1.0/cs04/virtio-v1.0-cs04.html#x1-220004
+    uint32 desc_ring_size = 16 * size;
+    uint32 avail_ring_size = 6 + 2 * (size);
+    uint32 used_ring_size = 6 + 8 * (size);
+    uint32 total = desc_ring_size + avail_ring_size + used_ring_size;
+
+    uint32 count = PGROUNDUP(total);
+
+    void* buf = kalloc();
+
+    for (int i = 1; i < count; i++) {
+        kalloc();
+    }
+
+    virtq->buffers = (struct virtq_desc*)&buf;
+    virtq->available = (struct virtq_avail*)&buf[desc_ring_size];
+    virtq->used = (struct virtq_used*)&buf[desc_ring_size + avail_ring_size];
+    virtq->next_buffer = 0;
+    virtq->lock = 0;
+
+    dev->cfg->queue_desc = V2P(buf);
+    dev->cfg->queue_avail = V2P(&virtq->available);
+    dev->cfg->queue_used = V2P(&virtq->used);
 }
 
 /*
@@ -88,13 +131,12 @@ int conf_virtio_mem(int fd, void (*negotiate)(uint32 *features))
         return -1;
     }
 
-    dev->cfg->queue_select = 0;
-    uint16 size0 = dev->cfg->queue_size;
 
-    dev->cfg->queue_select = 1;
-    uint16 size1 = dev->cfg->queue_size;
-
-    cprintf("Queue 0 size: %d, queue 1 size: %d\n", size0, size1);
+    // Only support 4 virt queues.
+    for (int i = 0; i < 4; i++) {
+        setup_virtqueue(dev, i);
+        cprintf("Generation: %d\n", dev->cfg->config_generation);
+    }
 
     return 0;
 }

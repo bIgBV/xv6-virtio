@@ -97,28 +97,6 @@ struct virtio_pci_common_cfg {
 } __attribute__((packed));
 
 
-/*
- * A Virtio device.
- */
-struct virtio_device {
-    enum { VIRT_FREE, VIRT_USED } state;
-    // memory mapped IO base
-    uint32 base;
-    // size of memory mapped region
-    uint32 size;
-    uint8 irq;
-    uint32 iobase;
-    struct pci_device* pci;
-    struct virtio_pci_common_cfg* cfg;
-    uint8 macaddr[6];
-};
-
-#define NVIRTIO                         10
-
-// Array of virtio devices
-extern struct virtio_device virtdevs[NVIRTIO];
-
-
 struct virtq_desc {
     /* Address (guest-physical). */
     uint32 addr;
@@ -158,18 +136,59 @@ struct virtq_used {
     struct virtq_used_elem ring[/* Queue Size */];
 };
 
-typedef struct {
-    uint16 queue_size;
+struct virt_queue {
+    uint32 num;
     struct virtq_desc* buffers;
-    struct virtio_avail* available;
-    struct virtio_used* used;
+    struct virtq_avail* available;
+    struct virtq_used* used;
     uint16 last_used_index;
     uint16 last_available_index;
     uint32 chunk_size;
     uint16 next_buffer;
+    uint16 queue_size;
     uint32 lock;
 } virt_queue;
 
+
+static inline int virtq_need_event(uint16_t event_idx, uint16_t new_idx, uint16_t old_idx)
+{
+         return (uint16_t)(new_idx - event_idx - 1) < (uint16_t)(new_idx - old_idx);
+}
+
+/* Get location of event indices (only with VIRTIO_F_EVENT_IDX) */
+static inline uint16 *virtq_used_event(struct virt_queue *vq)
+{
+        /* For backwards compat, used event index is at *end* of avail ring. */
+        return &vq->available->ring[vq->num];
+}
+
+static inline uint16 *virtq_avail_event(struct virt_queue *vq)
+{
+        /* For backwards compat, avail event index is at *end* of used ring. */
+        return (uint16 *)&vq->used->ring[vq->num];
+}
+
+/*
+ * A Virtio device.
+ */
+struct virtio_device {
+    enum { VIRT_FREE, VIRT_USED } state;
+    // memory mapped IO base
+    uint32 base;
+    // size of memory mapped region
+    uint32 size;
+    uint8 irq;
+    uint32 iobase;
+    struct pci_device* pci;
+    struct virtio_pci_common_cfg* cfg;
+    uint8 macaddr[6];
+    struct virt_queue queues[4];
+};
+
+#define NVIRTIO                         10
+
+// Array of virtio devices
+extern struct virtio_device virtdevs[NVIRTIO];
 
 /* The feature bitmap for virtio net */
 #define VIRTIO_NET_F_CSUM	        0	/* Host handles pkts w/ partial csum */

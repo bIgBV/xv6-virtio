@@ -34,9 +34,7 @@ void net_init()
   struct net_card card = netcards[fd];
   // Device class number for a network card
   int pci_fd = get_pci_dev(0x02);
-  cprintf("Got pci device: %d\n", pci_fd);
   int virt_fd = virtio_init(pci_fd);
-  cprintf("Got virtio device: %d\n", virt_fd);
 
   card.device = &virtdevs[virt_fd];
 }

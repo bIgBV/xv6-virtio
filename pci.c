@@ -205,7 +205,6 @@ int config_pci(struct pci_device* device)
         device->cap_map[type] = bar;
         device->cap_offset[type] = offset;
 
-        log_pci_cap(type, bar, offset);
         cap_pointer = next;
     }
 
@@ -267,13 +266,13 @@ static int pci_enumerate(struct pci_bus *bus)
 
             individual_fn->dev_class = confread32(individual_fn, PCI_CLASS_REG);
 
+            // populate BAR information.
+            read_dev_bars(individual_fn);
 
             if (PCI_VENDOR_ID(individual_fn->dev_id) == VIRTIO_VENDOR_ID) {
                 switch(PCI_DEVICE_ID(individual_fn->dev_id)) {
                     case (T_NETWORK_CARD):
                         cprintf("We have a transitional network device.\n");
-                        // populate BAR information.
-                        read_dev_bars(individual_fn);
                         config_pci(individual_fn);
 
                         // store the index to where the pci_device struct is
@@ -286,7 +285,7 @@ static int pci_enumerate(struct pci_bus *bus)
                         cprintf("We have some other transitional device.\n");
                 }
             } else {
-                free_pci(individual_fd);
+                pcikeys[PCI_CLASS(individual_fn->dev_class)] = individual_fd;
             }
 
             log_pci_device(individual_fn);
