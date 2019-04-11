@@ -141,13 +141,14 @@ struct virt_queue {
     struct virtq_desc* buffers;
     struct virtq_avail* available;
     struct virtq_used* used;
+    uint8* buffer; // The actualy memory used by this queue
     uint16 last_used_index;
     uint16 last_available_index;
     uint32 chunk_size;
     uint16 next_buffer;
     uint16 queue_size;
     uint32 lock;
-} virt_queue;
+};
 
 
 static inline int virtq_need_event(uint16_t event_idx, uint16_t new_idx, uint16_t old_idx)

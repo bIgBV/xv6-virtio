@@ -12,6 +12,7 @@ struct sleeplock;
 struct stat;
 struct superblock;
 struct pci_device;
+struct virt_queue;
 
 // bio.c
 void            binit(void);
@@ -193,6 +194,8 @@ void            clearpteu(pde_t *pgdir, char *uva);
 int             alloc_virt_dev(int);
 int             conf_virtio_mem(int, void(*)(uint32*));
 int             virtio_init(int);
+void            virtio_enable_intr(struct virt_queue*);
+void            virtio_disable_intr(virt_queue*);
 
 // netcard.c
 void            net_init(void);

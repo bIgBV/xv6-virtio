@@ -58,5 +58,32 @@ int virtio_init(int pci_fd)
     conf_virtio_mem(virt_fd, &virtionet_negotiate);
     init_macaddr(&virtdevs[virt_fd]);
 
+    struct virtio_device* dev = &virtdevs[virt_fd];
+
+    struct virt_queue* rx = dev->queues[0]; // Receive
+    struct virt_queue* tx = dev->queues[1]; // Send
+
+    if (rx->buffers == 0 || tx->buffers == 0) {
+        cprintf("unable to initialize virtio device\n");
+        return virt_fd;
+    }
+
+    void* buf = kalloc();
+
+    uint32 count = 64 * PGSIZE;
+
+    int i = PGSIZE;
+    while (i < count) {
+        kalloc();
+        i += PGSIZE;
+    }
+
+    rx->buffer = (uint8*)buf;
+    rx->chunk_size = FRAME_SIZE;
+    rx->available->index = 0;
+    virtio_enable_intr(rx);
+
+    // Fill up receive queue so that we can receive data.
+
     return virt_fd;
 }

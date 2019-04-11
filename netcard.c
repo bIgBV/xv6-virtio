@@ -32,7 +32,7 @@ void net_init()
   }
 
   struct net_card card = netcards[fd];
-  // Device class number for a network card
+  // Device class number for a network card is 0x02
   int pci_fd = get_pci_dev(0x02);
   int virt_fd = virtio_init(pci_fd);
 

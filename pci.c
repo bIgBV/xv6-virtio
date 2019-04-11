@@ -278,8 +278,6 @@ static int pci_enumerate(struct pci_bus *bus)
                         // store the index to where the pci_device struct is
                         // stored in the pcidevs slab.
                         pcikeys[PCI_CLASS(individual_fn->dev_class)] = individual_fd;
-                        cprintf("pcikeys[%d]: %d\n", PCI_CLASS(individual_fn->dev_class), individual_fd);
-
                         break;
                     default:
                         cprintf("We have some other transitional device.\n");

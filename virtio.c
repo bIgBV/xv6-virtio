@@ -16,6 +16,17 @@
 */
 struct virtio_device virtdevs[NVIRTIO] = {0};
 
+void virtio_enable_intr(struct virt_queue* vq)
+{
+    vq->used->flags |= ~VIRTQ_USED_F_NO_NOTIFY;
+}
+
+void virtio_disable_intr(virt_queue* vq)
+{
+    vq->used->flags |= VIRTQ_USED_F_NO_NOTIFY;
+}
+
+
 /*
  * Allocates a virtio device.
  */
@@ -95,6 +106,8 @@ int setup_virtqueue(struct virtio_device* dev, uint16 queue)
     dev->cfg->queue_desc = V2P(buf);
     dev->cfg->queue_avail = V2P(&virtq->available);
     dev->cfg->queue_used = V2P(&virtq->used);
+
+    cprintf("descriptors: %d available: %d used: %d\n", dev->cfg->queue_desc, dev->cfg->queue_avail, dev->cfg->queue_used);
 }
 
 /*
@@ -149,4 +162,39 @@ int conf_virtio_mem(int fd, void (*negotiate)(uint32 *features))
     val = dev->cfg->device_status;
 
     return 0;
+}
+
+void virtio_fill_buffer(struct virtio_device* dev, uint16 queue, struct virtq_desc* desc_chain, uint32 count)
+{
+    struct virt_queue* vq = &dev->queues[queue];
+    // Do we need to lock this queue?
+
+    uint16 idx = vq->available->idx % vq->queue_size;
+    uint16 buf_idx = vq->next_buffer;
+    uint16 next_buf;
+
+    uint8* buf = (uint8 *)(&vq->buffer[vq->chunk_size * buf_idx]);
+
+    vq->available->ring[idx] = buf_idx;
+    for (int i = 0; i < count; i++) {
+        next_buf = (buf_idx + 1) % vq->queue_size;
+
+        vq->buffers[buf_idx].flags = desc_chain[i].flags;
+
+        // If this isn't the last buffer, add the chaining flag
+        if (i != count -1) {
+            vq->buffers[buf_idx].flags |= VIRTQ_DESC_F_NEXT;
+        }
+
+        vq->buffers[buf_idx].next = next_buf;
+        vq->buffers[buf_idx].len = desc_chain[i].len;
+        vq->buffers[buf_idx].addr = desc_chain[i].addr;
+
+        buf_idx = next_buf;
+    }
+
+    vq->next_buffer = next_buf;
+
+    // Do we need an mfence here?
+    vq->available->index++;
 }
