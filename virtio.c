@@ -76,34 +76,7 @@ int setup_virtqueue(struct virtio_device* dev, uint16 queue)
     virtq->queue_size = size;
     virtq->num = queue;
 
-    // http://docs.oasis-open.org/virtio/virtio/v1.0/cs04/virtio-v1.0-cs04.html#x1-220004
-    uint32 desc_ring_size = 16 * size;
-    uint32 avail_ring_size = 6 + 2 * (size);
-    uint32 used_ring_size = 6 + 8 * (size);
-    uint32 total = desc_ring_size + avail_ring_size + used_ring_size;
-
-    uint32 count = PGROUNDUP(total);
-
-    void* buf = kalloc();
-
-    // first call to kalloc() allocates a page.
-    int i = PGSIZE;
-
-    while (i < count) {
-        kalloc();
-        i += PGSIZE;
-    }
-
-    // Since buf is a pointer to the starting of a page, this will be
-    // a multiple of two. Plus the sizes of the rings are themselves multiples
-    // of two, so the macro invocation shouldn't be an issue.
-    virtq->buffers = (struct virtq_desc*)ALIGN(&buf, 16);
-    virtq->available = (struct virtq_avail*)(&buf[desc_ring_size], 2);
-    virtq->used = (struct virtq_used*)ALIGN(&buf[desc_ring_size + avail_ring_size], 4);
-    virtq->next_buffer = 0;
-    virtq->lock = 0;
-
-    dev->cfg->queue_desc = V2P(buf);
+    dev->cfg->queue_desc = V2P(&virtq->buffers);
     dev->cfg->queue_avail = V2P(&virtq->available);
     dev->cfg->queue_used = V2P(&virtq->used);
 

@@ -136,12 +136,16 @@ struct virtq_used {
     struct virtq_used_elem ring[/* Queue Size */];
 };
 
+// qemu's default virtq size is 256
+#define VIRTQ_SIZE              256
+
+// alignment and sizes come from virtio spec 1.0 2.4 Virtqueues
+// http://docs.oasis-open.org/virtio/virtio/v1.0/cs04/virtio-v1.0-cs04.html#x1-220004
 struct virt_queue {
     uint32 num;
-    struct virtq_desc* buffers;
-    struct virtq_avail* available;
-    struct virtq_used* used;
-    uint8* buffer; // The actualy memory used by this queue
+    struct virtq_desc buffers[16 * VIRTQ_SIZE] __attribute__ ((aligned(16)));
+    struct virtq_avail available[6 + (2 * VIRTQ_SIZE)] __attribute__ ((aligned(2)));
+    struct virtq_used used[6 + (8 * VIRTQ_SIZE)] __attribute__ ((aligned(4)));
     uint16 last_used_index;
     uint16 last_available_index;
     uint32 chunk_size;
