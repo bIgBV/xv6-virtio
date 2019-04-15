@@ -71,6 +71,10 @@ trap(struct trapframe *tf)
     uartintr();
     lapiceoi();
     break;
+  case T_IRQ0 + 11:
+    cprintf("Got an interrupt from virtio device!\n");
+    lapiceoi();
+    break;
   case T_IRQ0 + 7:
   case T_IRQ0 + IRQ_SPURIOUS:
     cprintf("cpu%d: spurious interrupt at %x:%x\n",

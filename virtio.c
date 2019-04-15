@@ -21,7 +21,7 @@ void virtio_enable_intr(struct virt_queue* vq)
     vq->used->flags |= ~VIRTQ_USED_F_NO_NOTIFY;
 }
 
-void virtio_disable_intr(virt_queue* vq)
+void virtio_disable_intr(struct virt_queue* vq)
 {
     vq->used->flags |= VIRTQ_USED_F_NO_NOTIFY;
 }
@@ -75,6 +75,7 @@ int setup_virtqueue(struct virtio_device* dev, uint16 queue)
     struct virt_queue* virtq = &dev->queues[queue];
     virtq->queue_size = size;
     virtq->num = queue;
+    virtq->next_buffer = 0;
 
     dev->cfg->queue_desc = V2P(&virtq->buffers);
     dev->cfg->queue_avail = V2P(&virtq->available);
@@ -146,10 +147,12 @@ void virtio_fill_buffer(struct virtio_device* dev, uint16 queue, struct virtq_de
     uint16 buf_idx = vq->next_buffer;
     uint16 next_buf;
 
-    uint8* buf = (uint8 *)(&vq->buffer[vq->chunk_size * buf_idx]);
+    uint8* buf = (uint8 *)(&vq->arena[vq->chunk_size * buf_idx]);
 
     vq->available->ring[idx] = buf_idx;
     for (int i = 0; i < count; i++) {
+        cprintf("Filling buffer %d\n", buf_idx);
+
         next_buf = (buf_idx + 1) % vq->queue_size;
 
         vq->buffers[buf_idx].flags = desc_chain[i].flags;
@@ -161,7 +164,14 @@ void virtio_fill_buffer(struct virtio_device* dev, uint16 queue, struct virtq_de
 
         vq->buffers[buf_idx].next = next_buf;
         vq->buffers[buf_idx].len = desc_chain[i].len;
-        vq->buffers[buf_idx].addr = desc_chain[i].addr;
+        vq->buffers[buf_idx].addr = V2P(buf);
+
+        if (desc_chain[i].addr != 0) {
+            // Only copy if a valid address is present
+            memmove(buf, &desc_chain[i].addr, desc_chain[i].len);
+        }
+
+        buf += desc_chain[i].len;
 
         buf_idx = next_buf;
     }
@@ -169,5 +179,5 @@ void virtio_fill_buffer(struct virtio_device* dev, uint16 queue, struct virtq_de
     vq->next_buffer = next_buf;
 
     // Do we need an mfence here?
-    vq->available->index++;
+    vq->available->idx++;
 }

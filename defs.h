@@ -13,6 +13,8 @@ struct stat;
 struct superblock;
 struct pci_device;
 struct virt_queue;
+struct virtio_device;
+struct virtq_desc;
 
 // bio.c
 void            binit(void);
@@ -195,7 +197,8 @@ int             alloc_virt_dev(int);
 int             conf_virtio_mem(int, void(*)(uint32*));
 int             virtio_init(int);
 void            virtio_enable_intr(struct virt_queue*);
-void            virtio_disable_intr(virt_queue*);
+void            virtio_disable_intr(struct virt_queue*);
+void            virtio_fill_buffer(struct virtio_device*, uint16 queue, struct virtq_desc*, uint32);
 
 // netcard.c
 void            net_init(void);

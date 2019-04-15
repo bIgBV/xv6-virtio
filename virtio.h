@@ -151,6 +151,7 @@ struct virt_queue {
     uint32 chunk_size;
     uint16 next_buffer;
     uint16 queue_size;
+    uint8  arena[4096*2]; // Statically allocate 10 pages worth of memory per queue.
     uint32 lock;
 };
 

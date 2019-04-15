@@ -1,7 +1,9 @@
 #include "defs.h"
+#include "mmu.h"
 #include "types.h"
 #include "pci.h"
 #include "virtio.h"
+#include "virtnet.h"
 
 /*
  * Read the network device MAC address from the device specific configuration
@@ -60,30 +62,35 @@ int virtio_init(int pci_fd)
 
     struct virtio_device* dev = &virtdevs[virt_fd];
 
-    struct virt_queue* rx = dev->queues[0]; // Receive
-    struct virt_queue* tx = dev->queues[1]; // Send
+    struct virt_queue* rx = &dev->queues[0]; // Receive
+    struct virt_queue* tx = &dev->queues[1]; // Send
 
     if (rx->buffers == 0 || tx->buffers == 0) {
         cprintf("unable to initialize virtio device\n");
         return virt_fd;
     }
 
-    void* buf = kalloc();
-
-    uint32 count = 64 * PGSIZE;
-
-    int i = PGSIZE;
-    while (i < count) {
-        kalloc();
-        i += PGSIZE;
-    }
-
-    rx->buffer = (uint8*)buf;
     rx->chunk_size = FRAME_SIZE;
-    rx->available->index = 0;
+    rx->available->idx = 0;
     virtio_enable_intr(rx);
 
     // Fill up receive queue so that we can receive data.
+    struct virtq_desc buffer;
+    buffer.len = FRAME_SIZE;
+    buffer.flags = VIRTQ_DESC_F_WRITE;
+    buffer.addr = 0; // This should be the physical address of the buffer.
+
+    cprintf("Sending buffers to device\n");
+    for (int i = 0; i < 10; i++) {
+        virtio_fill_buffer(dev, 0, &buffer, 1);
+    }
+
+    tx->chunk_size = FRAME_SIZE;
+    tx->available->idx = 0;
+
+    picenable(dev->irq);
+    ioapicenable(dev->irq, 0);
+    ioapicenable(dev->irq, 1);
 
     return virt_fd;
 }
