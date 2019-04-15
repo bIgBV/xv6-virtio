@@ -83,6 +83,8 @@ int virtio_init(int pci_fd)
         virtio_fill_buffer(dev, 0, &buffer, 1);
     }
 
+    notify_queue(dev, rx->num);
+
     tx->chunk_size = FRAME_SIZE;
     tx->available->idx = 0;
 

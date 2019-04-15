@@ -199,6 +199,7 @@ int             virtio_init(int);
 void            virtio_enable_intr(struct virt_queue*);
 void            virtio_disable_intr(struct virt_queue*);
 void            virtio_fill_buffer(struct virtio_device*, uint16 queue, struct virtq_desc*, uint32);
+void            notify_queue(struct virtio_device*, uint16);
 
 // netcard.c
 void            net_init(void);

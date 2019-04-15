@@ -205,6 +205,8 @@ int config_pci(struct pci_device* device)
         device->cap_bar[type] = bar;
         device->cap_off[type] = offset;
 
+        // cprintf("cap type: %d pointer: %p\n", type, cap_pointer);
+
         cap_pointer = next;
     }
 

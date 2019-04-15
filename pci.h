@@ -48,7 +48,7 @@ struct pci_device {
     uint32 reg_base[6];
     uint32 reg_size[6];
     // Virtio spec v1.0 only defines 5 types of capabilites.
-    uint32 cap[6]; // Maps cap type to offset within the pci config space.
+    uint8 cap[6]; // Maps cap type to offset within the pci config space.
     uint8 cap_bar[6]; // Maps cap type to their BAR number
     uint32 cap_off[6]; // Map cap type to offset within bar
 

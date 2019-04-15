@@ -80,7 +80,7 @@ int setup_virtqueue(struct virtio_device* dev, uint16 queue)
     dev->cfg->queue_avail = V2P(&virtq->available);
     dev->cfg->queue_used = V2P(&virtq->used);
 
-    cprintf("descriptors: %d available: %d used: %d\n", dev->cfg->queue_desc, dev->cfg->queue_avail, dev->cfg->queue_used);
+    // cprintf("descriptors: %d available: %d used: %d\n", dev->cfg->queue_desc, dev->cfg->queue_avail, dev->cfg->queue_used);
 
     return 0;
 }
@@ -144,10 +144,11 @@ int conf_virtio_mem(int fd, void (*negotiate)(uint32 *features))
  *
  * From Virtio Spec 1.0 4.1.4.4 Notification structure layout
  */
-void notify_queue(struct virtio_device* dev, uint16 queue) {
-    uint32 cap_pointer = dev->pci->cap[VIRTIO_PCI_CAP_ISR_CFG];
-    uint32 notify_bar = dev->pci->cap_bar[VIRTIO_PCI_CAP_ISR_CFG];
-    uint32 notify_off = dev->pci->cap_off[VIRTIO_PCI_CAP_ISR_CFG];
+void notify_queue(struct virtio_device* dev, uint16 queue)
+{
+    uint8 cap_pointer = dev->pci->cap[VIRTIO_PCI_CAP_NOTIFY_CFG];
+    uint32 notify_bar = dev->pci->cap_bar[VIRTIO_PCI_CAP_NOTIFY_CFG];
+    uint32 notify_off = dev->pci->cap_off[VIRTIO_PCI_CAP_NOTIFY_CFG];
     uint32 bar_addr = dev->pci->reg_base[notify_bar];
 
     // The multiplier is after the cap structure, which is 16 bytes long.
@@ -158,7 +159,7 @@ void notify_queue(struct virtio_device* dev, uint16 queue) {
 
     uint32 total_offset = notify_off + dev->cfg->queue_notify_off * notify_off_multiplier;
 
-    cprintf("Total offset: %d\n", total_offset);
+    // cprintf("Total offset: %p, cap_pointer: %p\n", total_offset, cap_pointer);
 
     // write the queue index to the address within the bar to notify the
     // device.
@@ -179,7 +180,7 @@ void virtio_fill_buffer(struct virtio_device* dev, uint16 queue, struct virtq_de
 
     vq->available->ring[idx] = buf_idx;
     for (int i = 0; i < count; i++) {
-        cprintf("Filling buffer %d\n", buf_idx);
+        // cprintf("Filling buffer %d\n", buf_idx);
 
         next_buf = (buf_idx + 1) % vq->queue_size;
 
@@ -208,7 +209,4 @@ void virtio_fill_buffer(struct virtio_device* dev, uint16 queue, struct virtq_de
 
     // Do we need an mfence here?
     vq->available->idx++;
-
-    // Notify the device that we have written to the queue.
-    notify_queue(dev, queue);
 }
