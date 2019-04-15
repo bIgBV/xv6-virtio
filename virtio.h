@@ -73,6 +73,12 @@ struct virtio_pci_cap {
     uint32 length;
 };
 
+struct virtio_pci_notify_cap {
+    struct virtio_pci_cap cap;
+    uint32 notify_off_multiplier; /* Multiplier for queue_notify_off. */
+};
+
+
 
 struct virtio_pci_common_cfg {
     /* About the whole device. */

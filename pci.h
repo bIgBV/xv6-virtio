@@ -47,9 +47,10 @@ struct pci_device {
 
     uint32 reg_base[6];
     uint32 reg_size[6];
-    uint32 capabalities[6]; // Virtio spec v1.0 only defines 5 types of capabilites.
-    uint8 cap_map[6]; // Maps capabalities to their BAR number
-    uint32 cap_offset[6]; // Map the offset into a BAR for the given capability
+    // Virtio spec v1.0 only defines 5 types of capabilites.
+    uint32 cap[6]; // Maps cap type to offset within the pci config space.
+    uint8 cap_bar[6]; // Maps cap type to their BAR number
+    uint32 cap_off[6]; // Map cap type to offset within bar
 
     uint8 irq_line;
     uint8 irq_pin;
@@ -61,8 +62,6 @@ struct pci_device {
 
 extern struct pci_device pcidevs[NPCI];
 extern int pcikeys[NPCI];
-
-
 
 /*
  * Macro to create the 32 bit register values for a PCI transaction. `off` here

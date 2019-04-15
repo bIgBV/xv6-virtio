@@ -1,4 +1,3 @@
-#include <stddef.h>
 #include "types.h"
 #include "mmu.h"
 #include "memlayout.h"
@@ -82,6 +81,8 @@ int setup_virtqueue(struct virtio_device* dev, uint16 queue)
     dev->cfg->queue_used = V2P(&virtq->used);
 
     cprintf("descriptors: %d available: %d used: %d\n", dev->cfg->queue_desc, dev->cfg->queue_avail, dev->cfg->queue_used);
+
+    return 0;
 }
 
 /*
@@ -138,6 +139,33 @@ int conf_virtio_mem(int fd, void (*negotiate)(uint32 *features))
     return 0;
 }
 
+/*
+ * Notify the device by writing to an offest within the ISR CAP Bar.
+ *
+ * From Virtio Spec 1.0 4.1.4.4 Notification structure layout
+ */
+void notify_queue(struct virtio_device* dev, uint16 queue) {
+    uint32 cap_pointer = dev->pci->cap[VIRTIO_PCI_CAP_ISR_CFG];
+    uint32 notify_bar = dev->pci->cap_bar[VIRTIO_PCI_CAP_ISR_CFG];
+    uint32 notify_off = dev->pci->cap_off[VIRTIO_PCI_CAP_ISR_CFG];
+    uint32 bar_addr = dev->pci->reg_base[notify_bar];
+
+    // The multiplier is after the cap structure, which is 16 bytes long.
+    uint32 notify_off_multiplier = confread32(
+        dev->pci,
+        cap_pointer + offsetof(struct virtio_pci_notify_cap, notify_off_multiplier)
+    );
+
+    uint32 total_offset = notify_off + dev->cfg->queue_notify_off * notify_off_multiplier;
+
+    cprintf("Total offset: %d\n", total_offset);
+
+    // write the queue index to the address within the bar to notify the
+    // device.
+    uint32* addr = (bar_addr + total_offset);
+    *addr = queue;
+}
+
 void virtio_fill_buffer(struct virtio_device* dev, uint16 queue, struct virtq_desc* desc_chain, uint32 count)
 {
     struct virt_queue* vq = &dev->queues[queue];
@@ -180,4 +208,7 @@ void virtio_fill_buffer(struct virtio_device* dev, uint16 queue, struct virtq_de
 
     // Do we need an mfence here?
     vq->available->idx++;
+
+    // Notify the device that we have written to the queue.
+    notify_queue(dev, queue);
 }

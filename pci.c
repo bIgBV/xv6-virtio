@@ -201,9 +201,9 @@ int config_pci(struct pci_device* device)
         uint32 offset = confread32(device, cap_pointer + PCI_CAP_OFF);
 
         // Location of the given capability in the PCI config space.
-        device->capabalities[type] = cap_pointer;
-        device->cap_map[type] = bar;
-        device->cap_offset[type] = offset;
+        device->cap[type] = cap_pointer;
+        device->cap_bar[type] = bar;
+        device->cap_off[type] = offset;
 
         cap_pointer = next;
     }
@@ -217,7 +217,7 @@ int config_pci(struct pci_device* device)
  */
 void setup_window(struct pci_device *dev, uint8 width, uint8 bar, uint32 field_offset)
 {
-    uint8 cap_pointer = dev->capabalities[VIRTIO_PCI_CAP_PCI_CFG];
+    uint8 cap_pointer = dev->cap[VIRTIO_PCI_CAP_PCI_CFG];
 
     conf_write8(dev, cap_pointer + offsetof(struct virtio_pci_cap, bar), bar);
     conf_write8(dev, cap_pointer + offsetof(struct virtio_pci_cap, length), width);

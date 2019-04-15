@@ -212,3 +212,17 @@ int             get_pci_dev(int);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+/**
+ * Get offset of a field within a structure
+ *
+ * @v type		Structure type
+ * @v field		Field within structure
+ * @ret offset		Offset within structure
+ */
+#if defined ( __GNUC__ ) && ( __GNUC__ > 3 )
+#define offsetof( type, field ) __builtin_offsetof ( type, field )
+#else
+#define offsetof( type, field ) ( ( size_t ) &( ( ( type * ) NULL )->field ) )
+#endif
+

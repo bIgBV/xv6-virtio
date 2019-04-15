@@ -14,8 +14,6 @@ void init_macaddr(struct virtio_device *dev)
 {
     struct pci_device* pci = dev->pci;
 
-    uint8 cap_pointer = pci->capabalities[VIRTIO_PCI_CAP_PCI_CFG];
-
     cprintf("Mac addr: ");
 
     for (int i = 0; i < 6; i++) {
