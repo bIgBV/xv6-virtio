@@ -4,6 +4,7 @@
 #include "pci.h"
 #include "virtio.h"
 #include "virtnet.h"
+#include "nic.h"
 
 /*
  * Read the network device MAC address from the device specific configuration
@@ -51,6 +52,33 @@ void virtionet_negotiate(uint32 *features)
   }
 }
 
+void virtionet_send(void* driver, uint8_t *packet, uint16_t length)
+{
+    struct virtio_device* dev = (struct virtio_device*)driver;
+    struct virt_queue* vq = &dev->queues[1]; // Tx queue
+
+    uint32 virt_size = length + sizeof(struct virtio_net_hdr);
+
+    struct virtq_desc desc[2];
+    struct virtio_net_hdr net;
+
+    net.flags = VIRTIO_NET_HDR_F_NEEDS_CSUM;
+    net.gso_type = VIRTIO_NET_HDR_GSO_NONE;
+    net.csum_start = 0;
+    net.csum_offset = virt_size;
+
+    desc[0].len = sizeof(struct virtio_net_hdr);
+    desc[0].flags = 0;
+    desc[0].addr = &net;
+    desc[1].addr = packet;
+    desc[1].len = virt_size;
+    desc[1].flags = 0;
+
+    virtio_fill_buffer(dev, 1, &desc, 2);
+}
+
+void virtionet_recv(void* driver, uint8_t* packet, uint16_t length)
+{}
 
 int virtio_init(int pci_fd)
 {
@@ -83,14 +111,18 @@ int virtio_init(int pci_fd)
         virtio_fill_buffer(dev, 0, &buffer, 1);
     }
 
-    notify_queue(dev, rx->num);
-
     tx->chunk_size = FRAME_SIZE;
     tx->available->idx = 0;
+    notify_queue(dev, tx->num);
 
     picenable(dev->irq);
     ioapicenable(dev->irq, 0);
     ioapicenable(dev->irq, 1);
 
+    struct nic_device nic = { .driver = dev, .mac_addr = dev->macaddr, .send_packet = &virtionet_send, .recv_packet = &virtionet_recv };
+
+    register_device(nic);
+
     return virt_fd;
 }
+

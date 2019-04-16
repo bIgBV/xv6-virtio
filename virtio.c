@@ -209,4 +209,6 @@ void virtio_fill_buffer(struct virtio_device* dev, uint16 queue, struct virtq_de
 
     // Do we need an mfence here?
     vq->available->idx++;
+
+    notify_queue(dev, queue);
 }
